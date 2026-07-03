@@ -35,7 +35,7 @@
 #'   two-step strategy: within-condition mean imputation when missingness is
 #'   below a threshold and LDV (left-censored) imputation when missingness is
 #'   above the threshold. The imputation method is controlled by
-#'   \code{ldv_source} and optional arguments passed via \code{...}.
+#'   \code{ldv_source} and \code{threshold}.
 #'   \item \strong{Differential testing}: calls
 #'   \code{\link{test_limma_customized}} to fit a limma model and evaluate
 #'   user-specified contrasts. Interaction testing is optional.
@@ -55,9 +55,8 @@
 #'   detected (e.g., female vs male, day1 vs day2, ...).
 #' }
 #'
-#' @section Differential testing inputs (passed via \code{...}):
-#' The limma step requires the following objects, typically supplied via
-#' \code{...}:
+#' @section Differential testing inputs:
+#' The limma step requires the following explicit parameters:
 #' \describe{
 #'   \item{\code{tests}}{
 #'     Character vector of main contrasts to test, using a consistent naming
@@ -82,7 +81,7 @@
 #'   }
 #' }
 #'
-#' @section Paired designs and blocking (passed via \code{...}):
+#' @section Paired designs and blocking:
 #' \describe{
 #'   \item{\code{paired}}{
 #'     Logical (forwarded to \code{test_limma_customized}). If \code{TRUE},
@@ -124,6 +123,16 @@
 #' (percentage, e.g. 50).
 #' @param ldv_source Character. One of \code{"global"} or \code{"per-condition"}
 #' controlling LDV definition.
+#' @param threshold Numeric in (0, 1]. Forwarded to \code{impute_se()}.
+#' Missingness proportion below which within-condition mean imputation is
+#' used; at or above it, LDV (left-censored) imputation is used instead.
+#' @param paired Logical. Forwarded to \code{test_limma_customized()}. If
+#' \code{TRUE}, treats the design as paired/repeated-measures (see
+#' "Paired designs and blocking" section below).
+#' @param block_effect Logical. Forwarded to \code{test_limma_customized()}.
+#' If \code{TRUE}, models correlation between repeated observations via
+#' \code{limma::duplicateCorrelation} (see "Paired designs and blocking"
+#' section below); requires a \code{block} column in \code{colData(se)}.
 #' @param plots Logical. If \code{TRUE}, exports plots/tables to
 #' \code{path_output}.
 #'
@@ -145,11 +154,10 @@
 #'   level for the \code{condition} variable. This level is used to relevel
 #'   the design prior to fitting the limma model.
 #'
-#' @param ... Additional arguments forwarded to \code{impute_se()} and
-#' \code{test_limma_customized()}.
-#'   In particular, \code{tests}, \code{tests_interaction}, \code{formula},
-#'   \code{reference_condition}, and optionally \code{paired} /
-#'   \code{block_effect} should be provided here.
+#' @param ... Additional arguments forwarded only to
+#' \code{test_limma_customized()} (beyond \code{test}, \code{test_interaction},
+#' \code{design_formula}, \code{ref_condition}, \code{paired} and
+#' \code{block_effect}, which are already explicit parameters above).
 #'
 #' @return A named list with:
 #' \describe{
@@ -239,8 +247,9 @@
 run_proteomics_pipeline <- function(
         path_pgmatrix, path_annotation, path_output, level = "protein",
         type = "DIA", experiment, percent_missing,
-        ldv_source = c("global", "per-condition"),
+        ldv_source = c("global", "per-condition"), threshold = 0.3,
         tests, tests_interaction, formula, reference_condition,
+        paired = FALSE, block_effect = FALSE,
         plots = FALSE, ...
 ){
     args <- .pp_validate_inputs(path_pgmatrix, path_annotation, level, type,
@@ -250,14 +259,22 @@ run_proteomics_pipeline <- function(
     # 1) Filter and imputation
     filt <- filter_se_missing(se0, percentage = args$percent_missing)
     .pp_write_filtered(filt$removed, args$path_output, args$experiment)
-    se_imp <- impute_se(filt$se_filt, ldv_source = ldv_source, ...)
+    # `threshold` and `ldv_source` are impute_se()'s only tunable arguments;
+    # they are now explicit parameters of this wrapper instead of being
+    # bundled into `...`, so accidentally passing a test_limma_customized()
+    # argument here (e.g. block_effect) no longer breaks impute_se().
+    se_imp <- impute_se(filt$se_filt, threshold = threshold,
+                        ldv_source = ldv_source)
     .pp_write_before_after(filt$se_filt, se_imp,
                            args$path_output, args$experiment)
     # 2) Differential testing
+    # `paired` and `block_effect` are explicit parameters too; any remaining
+    # `...` is forwarded only to test_limma_customized().
     se_limma <- test_limma_customized(
         se_imp, type = "manual", test = tests,
         test_interaction = tests_interaction, design_formula = formula,
-        ref_condition  = reference_condition, ...
+        ref_condition  = reference_condition,
+        paired = paired, block_effect = block_effect, ...
     )
     # 3) Organize outputs (plot-ready). `effects` is a named list keyed by main
     #    contrast; each element holds the all_common_effect / common_effect /

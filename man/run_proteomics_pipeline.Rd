@@ -13,10 +13,13 @@ run_proteomics_pipeline(
   experiment,
   percent_missing,
   ldv_source = c("global", "per-condition"),
+  threshold = 0.3,
   tests,
   tests_interaction,
   formula,
   reference_condition,
+  paired = FALSE,
+  block_effect = FALSE,
   plots = FALSE,
   ...
 )
@@ -42,6 +45,10 @@ filenames.}
 \item{ldv_source}{Character. One of \code{"global"} or \code{"per-condition"}
 controlling LDV definition.}
 
+\item{threshold}{Numeric in (0, 1]. Forwarded to \code{impute_se()}.
+Missingness proportion below which within-condition mean imputation is
+used; at or above it, LDV (left-censored) imputation is used instead.}
+
 \item{tests}{Character vector of main contrasts to test.
 Each element must correspond to a valid condition contrast present
 in the design matrix (e.g. \code{"IL13_vs_NoTreated"}).}
@@ -60,14 +67,22 @@ All variables referenced in the formula must be present in
 level for the \code{condition} variable. This level is used to relevel
 the design prior to fitting the limma model.}
 
+\item{paired}{Logical. Forwarded to \code{test_limma_customized()}. If
+\code{TRUE}, treats the design as paired/repeated-measures (see
+"Paired designs and blocking" section below).}
+
+\item{block_effect}{Logical. Forwarded to \code{test_limma_customized()}.
+If \code{TRUE}, models correlation between repeated observations via
+\code{limma::duplicateCorrelation} (see "Paired designs and blocking"
+section below); requires a \code{block} column in \code{colData(se)}.}
+
 \item{plots}{Logical. If \code{TRUE}, exports plots/tables to
 \code{path_output}.}
 
-\item{...}{Additional arguments forwarded to \code{impute_se()} and
-\code{test_limma_customized()}.
-In particular, \code{tests}, \code{tests_interaction}, \code{formula},
-\code{reference_condition}, and optionally \code{paired} /
-\code{block_effect} should be provided here.}
+\item{...}{Additional arguments forwarded only to
+\code{test_limma_customized()} (beyond \code{test}, \code{test_interaction},
+\code{design_formula}, \code{ref_condition}, \code{paired} and
+\code{block_effect}, which are already explicit parameters above).}
 }
 \value{
 A named list with:
@@ -128,7 +143,7 @@ Filtered-out features are returned and may be written to disk.
 two-step strategy: within-condition mean imputation when missingness is
 below a threshold and LDV (left-censored) imputation when missingness is
 above the threshold. The imputation method is controlled by
-\code{ldv_source} and optional arguments passed via \code{...}.
+\code{ldv_source} and \code{threshold}.
 \item \strong{Differential testing}: calls
 \code{\link{test_limma_customized}} to fit a limma model and evaluate
 user-specified contrasts. Interaction testing is optional.
@@ -149,10 +164,9 @@ detected (e.g., female vs male, day1 vs day2, ...).
 }
 }
 
-\section{Differential testing inputs (passed via \code{...})}{
+\section{Differential testing inputs}{
 
-The limma step requires the following objects, typically supplied via
-\code{...}:
+The limma step requires the following explicit parameters:
 \describe{
 \item{\code{tests}}{
 Character vector of main contrasts to test, using a consistent naming
@@ -178,7 +192,7 @@ before model fitting.
 }
 }
 
-\section{Paired designs and blocking (passed via \code{...})}{
+\section{Paired designs and blocking}{
 
 \describe{
 \item{\code{paired}}{

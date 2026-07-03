@@ -363,7 +363,7 @@ if (nzchar(p_main)) knitr::include_graphics(p_main)
 ```
 
 The x-axis is the estimated log2 fold change (IL13 vs NoTreated) and the y-axis
-is statistical significance (−log10 adjy frusted p-value); points awaom the
+is statistical significance (−log10 adjusted p-value); points away from the
 centre and high up are strongly and significantly regulated. This view answers
 "which proteins are affected by IL13 on average?", but it does not yet separate
 stable effects from day-dependent ones.
