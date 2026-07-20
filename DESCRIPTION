@@ -1,6 +1,6 @@
 Package: ProteinBatcher
 Title: Batch Processing and Harmonization of Quantitative Proteomics Table
-Version: 0.99.5
+Version: 0.99.6
 Authors@R: 
     c(person(given = "Aitor", family ="Moruno-Cuenca", email = "morunoaitor@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0009-0009-8133-2552")),
     person(given = "Dr. Sergi", family = "Sayols-Puig", email = "sergi.sayolspuig@almirall.com", role = c("ctb"), comment = c(ORCID = "0000-0002-3877-4170")),
