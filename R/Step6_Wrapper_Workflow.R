@@ -21,6 +21,10 @@
 #'     experimental design. At minimum it must encode sample-to-condition
 #'     mapping. Additional columns are required
 #'     (\code{batch}, \code{replicate}, \code{block}).
+#'     Accepts either a standard annotation TSV (default,
+#'     \code{annotation_format = "standard"}) or an SDRF-Proteomics file
+#'     (\code{annotation_format = "sdrf"}, with column roles supplied via
+#'     \code{sdrf_map}).
 #'   }
 #' }
 #'
@@ -133,6 +137,17 @@
 #' If \code{TRUE}, models correlation between repeated observations via
 #' \code{limma::duplicateCorrelation} (see "Paired designs and blocking"
 #' section below); requires a \code{block} column in \code{colData(se)}.
+#' @param annotation_format Character. One of \code{"standard"} (default) or
+#' \code{"sdrf"}. Use \code{"sdrf"} when \code{path_annotation} is an
+#' SDRF-Proteomics file rather than a plain annotation TSV with
+#' \code{file}/\code{sample_name}/\code{condition} columns; see
+#' \code{sdrf_map}.
+#' @param sdrf_map Named list, only used when
+#' \code{annotation_format = "sdrf"}. Maps SDRF column names (which are not
+#' fixed by the standard) to the roles the pipeline needs, e.g.
+#' \code{list(condition = "factor value[treatment]", batch = "comment[batch]",
+#' donor_id = "characteristics[individual]")}. At minimum \code{condition}
+#' must be supplied. Ignored when \code{annotation_format = "standard"}.
 #' @param plots Logical. If \code{TRUE}, exports plots/tables to
 #' \code{path_output}.
 #'
@@ -250,12 +265,17 @@ run_proteomics_pipeline <- function(
         ldv_source = c("global", "per-condition"), threshold = 0.3,
         tests, tests_interaction, formula, reference_condition,
         paired = FALSE, block_effect = FALSE,
+        annotation_format = c("standard", "sdrf"), sdrf_map = NULL,
         plots = FALSE, ...
 ){
     args <- .pp_validate_inputs(path_pgmatrix, path_annotation, level, type,
-                                percent_missing, path_output, experiment)
+                                percent_missing, path_output, experiment,
+                                annotation_format = annotation_format,
+                                sdrf_map = sdrf_map)
     se0 <- .pp_import_se(args$path_pgmatrix, args$path_annotation,
-                         args$level, args$type)
+                         args$level, args$type,
+                         annotation_format = args$annotation_format,
+                         sdrf_map = args$sdrf_map)
     # 1) Filter and imputation
     filt <- filter_se_missing(se0, percentage = args$percent_missing)
     .pp_write_filtered(filt$removed, args$path_output, args$experiment)

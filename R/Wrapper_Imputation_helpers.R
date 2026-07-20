@@ -127,8 +127,12 @@
 #' @noRd
 .pp_validate_inputs <- function(path_pgmatrix, path_annotation,
                                 level, type, percent_missing,
-                                path_output, experiment)
+                                path_output, experiment,
+                                annotation_format = c("standard", "sdrf"),
+                                sdrf_map = NULL)
 {
+    annotation_format <- match.arg(annotation_format)
+
     if (!file.exists(path_pgmatrix))
         stop("path_pgmatrix does not exist.")
     if (!file.exists(path_annotation))
@@ -140,10 +144,7 @@
         stop("path_output folder does not exist.")
     if (!is.character(experiment) || experiment == "")
         stop("experiment must be a non-empty string.")
-    # Check that annotation file has columns
-    # file	sample	sample_name	condition	replicate	donor_id	batch
-    required_cols <- c("file","sample","sample_name","condition","replicate",
-                       "batch","donor_id")
+
     # Read ONLY the header (fast) and try common delimiters
     # 1) tab (typical for .tsv/.txt)
     ann_head <- tryCatch(
@@ -173,22 +174,43 @@
     if (is.null(ann_head))
         stop("Could not read path_annotation header
                 (unknown delimiter or malformed file).")
+
     # Normalize column names (trim whitespace)
     coln <- trimws(colnames(ann_head))
+
     # Detect duplicate column names
     if (anyDuplicated(coln)) {
         dups <- unique(coln[duplicated(coln)])
         stop("path_annotation has duplicated column names: ",
              paste(dups, collapse = ", "))
     }
-    missing_cols <- setdiff(required_cols, coln)
-    if (length(missing_cols) > 0) {
-        stop(
-            "path_annotation is missing required columns: ",
-            paste(missing_cols, collapse = ", "),
-            ". Found columns: ",
-            paste(coln, collapse = ", ")
-        )
+
+    if (annotation_format == "standard") {
+        required_cols <- c("file","sample","sample_name","condition",
+                           "replicate","batch","donor_id")
+        missing_cols <- setdiff(required_cols, coln)
+        if (length(missing_cols) > 0) {
+            stop(
+                "path_annotation is missing required columns: ",
+                paste(missing_cols, collapse = ", "),
+                ". Found columns: ",
+                paste(coln, collapse = ", ")
+            )
+        }
+    } else {
+        if (!"comment[data file]" %in% coln) {
+            stop("SDRF annotation is missing the 'comment[data file]' column.",
+                 " Found columns: ", paste(coln, collapse = ", "))
+        }
+        if (!any(c("source name", "assay name") %in% coln)) {
+            stop("SDRF annotation is missing 'source name' or 'assay name'.",
+                 " Found columns: ", paste(coln, collapse = ", "))
+        }
+        if (is.null(sdrf_map) || is.null(sdrf_map$condition)) {
+            stop("For annotation_format = 'sdrf' you must supply ",
+                 "sdrf_map = list(condition = \"factor value[...]\", ...) ",
+                 "indicating which SDRF column plays the role of 'condition'.")
+        }
     }
     list(path_pgmatrix = path_pgmatrix,
          path_annotation = path_annotation,
@@ -196,17 +218,22 @@
          type = type,
          percent_missing = percent_missing,
          path_output = path_output,
-         experiment = experiment)
+         experiment = experiment,
+         annotation_format = annotation_format,
+         sdrf_map = sdrf_map)
 }
 
 #' @keywords internal
 #' @noRd
-.pp_import_se <- function(path_pgmatrix, path_annotation, level, type){
+.pp_import_se <- function(path_pgmatrix, path_annotation, level, type,
+                          annotation_format = "standard", sdrf_map = NULL) {
     se <- make_se_from_files(
         path_pgmatrix,
         path_annotation,
         level = level,
-        type = type
+        type = type,
+        annotation_format = annotation_format,
+        sdrf_map = sdrf_map
     )
     if (!methods::is(se, "SummarizedExperiment"))
         stop("make_se_from_files did not return a SummarizedExperiment.")
@@ -274,11 +301,51 @@ readQuantTable <- function (quant_table_path, type = "TMT", level = NULL,
 
 #' @keywords internal
 #' @noRd
+.map_sdrf_columns <- function(df, sdrf_map = NULL) {
+    cn <- colnames(df)
+    if ("comment[data file]" %in% cn) {
+        colnames(df)[cn == "comment[data file]"] <- "file"
+        cn <- colnames(df)
+    }
+    anchor <- intersect(c("source name", "assay name"), cn)
+    if (!"sample_name" %in% cn) {
+        if (length(anchor) == 0) {
+            stop("SDRF file must contain 'source name' or 'assay name'.",
+                 call. = FALSE)
+        }
+        colnames(df)[cn == anchor[1]] <- "sample_name"
+        cn <- colnames(df)
+    }
+    if (!"sample" %in% cn) { df$sample <- df$sample_name; cn <- colnames(df) }
+
+    if (!is.null(sdrf_map)) {
+        for (target in names(sdrf_map)) {
+            src <- sdrf_map[[target]]
+            if (!src %in% cn) {
+                stop("SDRF column '", src, "' (mapped to '", target,
+                     "') was not found.", call. = FALSE)
+            }
+            colnames(df)[cn == src] <- target
+            cn <- colnames(df)
+        }
+    }
+    if (!"condition" %in% colnames(df)) {
+        stop("'condition' could not be resolved. Provide sdrf_map = ",
+             "list(condition = \"factor value[...]\").", call. = FALSE)
+    }
+    df
+}
+
+#' @keywords internal
+#' @noRd
 readExpDesign <- function (exp_anno_path, type = "TMT", lfq_type = "Intensity",
-                           lowercase = FALSE)
+                           lowercase = FALSE, format = c("standard", "sdrf"),
+                           sdrf_map = NULL)
 {
+    format <- match.arg(format)
     temp_df <- utils::read.table(exp_anno_path, header = TRUE, sep = "\t",
-                                 stringsAsFactors = FALSE)
+                                 stringsAsFactors = FALSE, check.names = FALSE)
+    if (format == "sdrf") temp_df <- .map_sdrf_columns(temp_df, sdrf_map)
     if (type == "DIA") {
         if (lowercase) {
             colnames(temp_df) <- tolower(colnames(temp_df))
@@ -413,7 +480,10 @@ make_se_customized <- function (proteins_unique, columns, expdesign,
 make_se_from_files <- function (quant_table_path, exp_anno_path, type = "TMT",
                                 level = NULL, exp_type = NULL,
                                 log2transform = NULL, lfq_type = "Intensity",
-                                gencode = FALSE, additional_cols = NULL) {
+                                gencode = FALSE, additional_cols = NULL,
+                                annotation_format = c("standard", "sdrf"),
+                                sdrf_map = NULL) {
+    annotation_format <- match.arg(annotation_format)
     if (type == "DIA" & is.null(log2transform)) {
         log2transform <- TRUE
     }else if (is.null(level)) {
@@ -427,7 +497,8 @@ make_se_from_files <- function (quant_table_path, exp_anno_path, type = "TMT",
     quant_table <- readQuantTable(quant_table_path, type = type,
                                   level = level, exp_type = exp_type,
                                   additional_cols = additional_cols)
-    exp_design <- readExpDesign(exp_anno_path, type = type, lfq_type = lfq_type)
+    exp_design <- readExpDesign(exp_anno_path, type = type, lfq_type = lfq_type,
+                                format = annotation_format, sdrf_map = sdrf_map)
     if (type == "DIA") {
         if (level == "protein") {
             if (gencode) {

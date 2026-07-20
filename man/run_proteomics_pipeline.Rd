@@ -20,6 +20,8 @@ run_proteomics_pipeline(
   reference_condition,
   paired = FALSE,
   block_effect = FALSE,
+  annotation_format = c("standard", "sdrf"),
+  sdrf_map = NULL,
   plots = FALSE,
   ...
 )
@@ -76,6 +78,19 @@ If \code{TRUE}, models correlation between repeated observations via
 \code{limma::duplicateCorrelation} (see "Paired designs and blocking"
 section below); requires a \code{block} column in \code{colData(se)}.}
 
+\item{annotation_format}{Character. One of \code{"standard"} (default) or
+\code{"sdrf"}. Use \code{"sdrf"} when \code{path_annotation} is an
+SDRF-Proteomics file rather than a plain annotation TSV with
+\code{file}/\code{sample_name}/\code{condition} columns; see
+\code{sdrf_map}.}
+
+\item{sdrf_map}{Named list, only used when
+\code{annotation_format = "sdrf"}. Maps SDRF column names (which are not
+fixed by the standard) to the roles the pipeline needs, e.g.
+\code{list(condition = "factor value[treatment]", batch = "comment[batch]",
+donor_id = "characteristics[individual]")}. At minimum \code{condition}
+must be supplied. Ignored when \code{annotation_format = "standard"}.}
+
 \item{plots}{Logical. If \code{TRUE}, exports plots/tables to
 \code{path_output}.}
 
@@ -127,6 +142,10 @@ Path to a tab-delimited sample annotation file describing the
 experimental design. At minimum it must encode sample-to-condition
 mapping. Additional columns are required
 (\code{batch}, \code{replicate}, \code{block}).
+Accepts either a standard annotation TSV (default,
+\code{annotation_format = "standard"}) or an SDRF-Proteomics file
+(\code{annotation_format = "sdrf"}, with column roles supplied via
+\code{sdrf_map}).
 }
 }
 }
