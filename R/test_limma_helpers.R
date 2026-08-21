@@ -15,7 +15,10 @@
              call. = FALSE)
     }
     cd <- as.data.frame(SummarizedExperiment::colData(se))
-    need_cd <- c("label", "condition", "replicate", "batch", "donor_id")
+    # Only 'label' and 'condition' are strictly required in colData.
+    # 'replicate', 'batch', 'donor_id' are optional and only needed when
+    # the user references them in the design formula or block_var.
+    need_cd <- c("label", "condition")
     if (!all(need_cd %in% colnames(cd))) {
         stop("Missing in colData(se): ", paste(setdiff(need_cd, colnames(cd)), collapse=", "), call. = FALSE)
     }
@@ -73,16 +76,22 @@
 #' Fit limma with or without "block" (duplicateCorrelation)
 #' @keywords internal
 #' @noRd
-.tl_fit_limma <- function(raw, design, cd, block_effect){
+.tl_fit_limma <- function(raw, design, cd, block_effect, block_var = "donor_id"){
     if (!block_effect) {
         message("Fitting limma model without block")
         return(limma::lmFit(raw, design = design))
     }
-    if (!("block" %in% colnames(cd))) stop("Block variable is missing in colData(se).", call. = FALSE)
-    if(length(unique(cd$block)) <= 1) stop("Block only applicable with 2 or more factor levels")
-    message("Fitting limma model with block")
-    corfit <- limma::duplicateCorrelation(raw, design, block = cd$block)
-    limma::lmFit(raw, design, block = cd$block, correlation = corfit$consensus)
+    if (!(block_var %in% colnames(cd)))
+        stop("Block variable '", block_var, "' is missing in colData(se).",
+             call. = FALSE)
+    if (length(unique(cd[[block_var]])) <= 1)
+        stop("Block variable '", block_var, "' only has one level; ",
+             "duplicateCorrelation requires 2 or more levels.",
+             call. = FALSE)
+    message("Fitting limma model with block variable '", block_var, "'")
+    corfit <- limma::duplicateCorrelation(raw, design, block = cd[[block_var]])
+    limma::lmFit(raw, design, block = cd[[block_var]],
+                 correlation = corfit$consensus)
 }
 
 #' Execute contrasts + BH "recomputed" after filtering genes ldv/ldv
@@ -92,8 +101,8 @@
     cn_expr <- gsub("_vs_", " - ", tests)
     cn_name <- gsub(" - ", "_vs_", cn_expr)
 
-    cm <- limma::makeContrasts(contrasts = stats::setNames(cn_expr, cn_name),
-                               levels = design)
+    cm <- limma::makeContrasts(contrasts = cn_expr, levels = design)
+    colnames(cm) <- cn_name
     fit <- limma::eBayes(limma::contrasts.fit(fit0, cm))
 
     cond_cols <- intersect(colnames(design), names(map_mn))

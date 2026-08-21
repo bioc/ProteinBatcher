@@ -186,8 +186,7 @@
     }
 
     if (annotation_format == "standard") {
-        required_cols <- c("file","sample","sample_name","condition",
-                           "replicate","batch","donor_id")
+        required_cols <- c("file","sample","sample_name","condition")
         missing_cols <- setdiff(required_cols, coln)
         if (length(missing_cols) > 0) {
             stop(
@@ -275,6 +274,12 @@ readQuantTable <- function (quant_table_path, type = "TMT", level = NULL,
                             log2transform = FALSE, exp_type = NULL,
                             additional_cols = NULL)
 {
+    # Dispatch to the mzTab reader when the file is in mzTab format.
+    # The mzTab parser returns a data.frame with the same shape as the
+    # DIA pg_matrix branch (Protein.Group, Protein.Names, Genes, + samples).
+    if (type == "DIA" && .pp_is_mztab(quant_table_path)) {
+        return(.pp_read_mztab_pg_matrix(quant_table_path))
+    }
     temp_data <- utils::read.table(quant_table_path, header = TRUE,
                                    fill = TRUE, sep = "\t", quote = "",
                                    comment.char = "", blank.lines.skip = FALSE,
@@ -374,9 +379,15 @@ readExpDesign <- function (exp_anno_path, type = "TMT", lfq_type = "Intensity",
                     annotation file.")
         }
         temp_df$condition <- make.names(temp_df$condition)
-        if (!all(is.na(temp_df$replicate))) {
-            temp_df$label <- temp_df$file
+        # 'replicate' is optional — create a placeholder if absent so
+        # downstream code (make_se_customized, test_limma_customized) does
+        # not crash on colData access.
+        if (!"replicate" %in% colnames(temp_df)) {
+            temp_df$replicate <- NA_character_
         }
+        # 'label' is required by make_se_customized for row matching.
+        # Always create it from 'file'.
+        temp_df$label <- temp_df$file
     }else{
         stop("This type is currently not supported.")
     }
@@ -425,9 +436,13 @@ make_se_customized <- function (proteins_unique, columns, expdesign,
                 obtain the required columns",
              call. = FALSE)
     }
-    if (any(!c("label", "condition", "replicate") %in% colnames(expdesign))) {
-        stop("'label', 'condition' and/or 'replicate' columns",
+    if (any(!c("label", "condition") %in% colnames(expdesign))) {
+        stop("'label' and/or 'condition' columns",
              "are not present in the experimental design", call. = FALSE)
+    }
+    # 'replicate' is optional — create a placeholder if absent
+    if (!"replicate" %in% colnames(expdesign)) {
+        expdesign$replicate <- NA_character_
     }
     if (any(!apply(proteins_unique[, columns], 2, is.numeric))) {
         stop("specified 'columns' should be numeric", "\nRun

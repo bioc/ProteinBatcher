@@ -12,7 +12,8 @@ test_limma_customized(
   design_formula = stats::formula(~0 + condition),
   ref_condition = NULL,
   paired = FALSE,
-  block_effect = FALSE
+  block_effect = FALSE,
+  block_var = "donor_id"
 )
 }
 \arguments{
@@ -45,8 +46,14 @@ design (if absent) to support paired/repeated-measure designs for technical
 replicates.}
 
 \item{block_effect}{Logical. If \code{TRUE}, fits limma with a blocking
-factor using \code{colData(se)$block} and
-\code{limma::duplicateCorrelation()}.}
+factor using \code{limma::duplicateCorrelation()} and the colData column
+specified by \code{block_var}.}
+
+\item{block_var}{Character. Name of the \code{colData(se)} column to use as
+the blocking variable for \code{duplicateCorrelation} when
+\code{block_effect = TRUE}. Defaults to \code{"donor_id"}. The column must
+exist in \code{colData(se)} and have at least two levels. Ignored when
+\code{block_effect = FALSE}.}
 }
 \value{
 The input SummarizedExperiment with additional columns
@@ -71,8 +78,8 @@ When \code{paired = TRUE}, the function ensures the design includes
 \code{replicate} by updating the right-hand side of \code{design_formula}
 (it does not overwrite other covariates such as batch). When
 \code{block_effect = TRUE}, the function fits the model using
-\code{limma::duplicateCorrelation()} with \code{colData(se)$block} as
-blocking variable.
+\code{limma::duplicateCorrelation()} with the column specified by
+\code{block_var} (default: \code{donor_id}) as the blocking variable.
 
 Results are written into \code{rowData(se)} as wide columns per contrast,
 using prefixes corresponding to each tested comparison. For each contrast,

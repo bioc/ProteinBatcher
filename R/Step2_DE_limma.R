@@ -17,8 +17,8 @@
 #' \code{replicate} by updating the right-hand side of `design_formula`
 #' (it does not overwrite other covariates such as batch). When
 #' `block_effect = TRUE`, the function fits the model using
-#' \code{limma::duplicateCorrelation()} with \code{colData(se)$block} as
-#' blocking variable.
+#' \code{limma::duplicateCorrelation()} with the column specified by
+#' `block_var` (default: \code{donor_id}) as the blocking variable.
 #'
 #' @param se A SummarizedExperiment. The assay is taken from
 #'   \code{SummarizedExperiment::assay(se)}.
@@ -42,8 +42,13 @@
 #' design (if absent) to support paired/repeated-measure designs for technical
 #' replicates.
 #' @param block_effect Logical. If \code{TRUE}, fits limma with a blocking
-#' factor using \code{colData(se)$block} and
-#' \code{limma::duplicateCorrelation()}.
+#' factor using \code{limma::duplicateCorrelation()} and the colData column
+#' specified by \code{block_var}.
+#' @param block_var Character. Name of the \code{colData(se)} column to use as
+#' the blocking variable for \code{duplicateCorrelation} when
+#' \code{block_effect = TRUE}. Defaults to \code{"donor_id"}. The column must
+#' exist in \code{colData(se)} and have at least two levels. Ignored when
+#' \code{block_effect = FALSE}.
 #'
 #' @details
 #' Results are written into \code{rowData(se)} as wide columns per contrast,
@@ -133,7 +138,8 @@
 test_limma_customized <- function(
         se, type = c("manual"), test = NULL, test_interaction = "NA",
         design_formula = stats::formula(~ 0 + condition),
-        ref_condition = NULL, paired = FALSE, block_effect = FALSE
+        ref_condition = NULL, paired = FALSE, block_effect = FALSE,
+        block_var = "donor_id"
 ){
     .tl_check_inputs(se, design_formula, ref_condition, test, test_interaction)
     cd <- as.data.frame(SummarizedExperiment::colData(se))
@@ -141,6 +147,10 @@ test_limma_customized <- function(
     if (is.null(design_formula)){
         design_formula <- stats::as.formula("~ 0 + condition")
     } else if (paired && !"replicate" %in% all.vars(design_formula)){
+        if (!"replicate" %in% colnames(cd))
+            stop("paired = TRUE requires a 'replicate' column in colData(se), ",
+                 "but it is absent. Either add a 'replicate' column to the ",
+                 "annotation file or set paired = FALSE.", call. = FALSE)
         design_formula <- stats::update(design_formula, . ~ . + replicate)
     }
 
@@ -150,7 +160,7 @@ test_limma_customized <- function(
 
     raw <- SummarizedExperiment::assay(se)
     design <- .tl_make_design(design_formula, cd)
-    fit <- .tl_fit_limma(raw, design, cd, block_effect)
+    fit <- .tl_fit_limma(raw, design, cd, block_effect, block_var = block_var)
 
     map_mn <- stats::setNames(levels(cd$condition),
                                 make.names(levels(cd$condition)))

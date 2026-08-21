@@ -1,0 +1,16 @@
+MTD	mzTab-version	1.0.0
+MTD	mzTab-mode	Complete
+MTD	mzTab-type	Quantification
+MTD	description	Toy example following the HUPO-PSI mzTab (proteomics) 1.0 protein section. Not a real DIA-NN export; used only to exercise ProteinBatcher's mzTab reader.
+MTD	ms_run[1]-location	file:///data/HaCaT_IL13_rep1.raw
+MTD	ms_run[2]-location	file:///data/HaCaT_NoTreated_rep1.raw
+MTD	assay[1]-ms_run_ref	ms_run[1]
+MTD	assay[2]-ms_run_ref	ms_run[2]
+MTD	study_variable[1]-assay_refs	assay[1]
+MTD	study_variable[1]-description	IL13
+MTD	study_variable[2]-assay_refs	assay[2]
+MTD	study_variable[2]-description	NoTreated
+PRH	accession	description	taxid	species	database	database_version	search_engine	best_search_engine_score[1]	ambiguity_members	modifications	protein_coverage	opt_global_gene_name	protein_abundance_assay[1]	protein_abundance_assay[2]
+PRT	P05412	Transcription factor AP-1	9606	Homo sapiens	UniProtKB	2024_01	[MS,MS:1001583,DIA-NN,]	0.001	null	null	0.52	JUN	18.42	12.10
+PRT	Q13835	Protocadherin Fat 1	9606	Homo sapiens	UniProtKB	2024_01	[MS,MS:1001583,DIA-NN,]	0.002	null	null	0.31	PCDH1	15.03	14.98
+PRT	P05413	Fatty acid-binding protein, heart	9606	Homo sapiens	UniProtKB	2024_01	[MS,MS:1001583,DIA-NN,]	0.004	null	null	0.61	FABP3	null	9.77

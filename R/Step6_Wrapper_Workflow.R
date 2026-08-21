@@ -100,9 +100,17 @@
 #'     correlation between repeated observations is modeled using
 #'     \code{limma::duplicateCorrelation} and
 #'     \code{lmFit(..., block=..., correlation=...)}.
-#'     This requires a \code{block} column in \code{colData(se)}. Use this when
-#'     there is a known blocking factor (e.g., donor/subject) inducing
-#'     correlation across samples.
+#'     The blocking variable is specified by \code{block_var} (default:
+#'     \code{"donor_id"}). Use this when there is a known blocking factor
+#'     (e.g., donor/subject) inducing correlation across samples.
+#'   }
+#'   \item{\code{block_var}}{
+#'     Character (forwarded to \code{test_limma_customized}). Name of the
+#'     \code{colData} column to use as the blocking variable for
+#'     \code{duplicateCorrelation} when \code{block_effect = TRUE}. Defaults
+#'     to \code{"donor_id"}. Any column present in the annotation file can be
+#'     used (e.g., \code{"batch"}, \code{"patient_id"}). Ignored when
+#'     \code{block_effect = FALSE}.
 #'   }
 #' }
 #'
@@ -136,7 +144,11 @@
 #' @param block_effect Logical. Forwarded to \code{test_limma_customized()}.
 #' If \code{TRUE}, models correlation between repeated observations via
 #' \code{limma::duplicateCorrelation} (see "Paired designs and blocking"
-#' section below); requires a \code{block} column in \code{colData(se)}.
+#' section below); the blocking variable is specified by \code{block_var}.
+#' @param block_var Character. Forwarded to \code{test_limma_customized()}.
+#' Name of the colData column to use as the blocking variable when
+#' \code{block_effect = TRUE}. Defaults to \code{"donor_id"}. Ignored when
+#' \code{block_effect = FALSE}.
 #' @param annotation_format Character. One of \code{"standard"} (default) or
 #' \code{"sdrf"}. Use \code{"sdrf"} when \code{path_annotation} is an
 #' SDRF-Proteomics file rather than a plain annotation TSV with
@@ -264,7 +276,7 @@ run_proteomics_pipeline <- function(
         type = "DIA", experiment, percent_missing,
         ldv_source = c("global", "per-condition"), threshold = 0.3,
         tests, tests_interaction, formula, reference_condition,
-        paired = FALSE, block_effect = FALSE,
+        paired = FALSE, block_effect = FALSE, block_var = "donor_id",
         annotation_format = c("standard", "sdrf"), sdrf_map = NULL,
         plots = FALSE, ...
 ){
@@ -294,7 +306,8 @@ run_proteomics_pipeline <- function(
         se_imp, type = "manual", test = tests,
         test_interaction = tests_interaction, design_formula = formula,
         ref_condition  = reference_condition,
-        paired = paired, block_effect = block_effect, ...
+        paired = paired, block_effect = block_effect,
+        block_var = block_var, ...
     )
     # 3) Organize outputs (plot-ready). `effects` is a named list keyed by main
     #    contrast; each element holds the all_common_effect / common_effect /

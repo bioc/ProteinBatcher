@@ -8,51 +8,67 @@ export(plot_volcano_customized)
 export(run_proteomics_pipeline)
 export(test_limma_customized)
 importFrom(S4Vectors,metadata)
-importFrom(SummarizedExperiment,SummarizedExperiment)
-importFrom(SummarizedExperiment,assay)
-importFrom(SummarizedExperiment,colData)
-importFrom(SummarizedExperiment,rowData)
-importFrom(data.table,dcast.data.table)
-importFrom(data.table,melt.data.table)
-importFrom(data.table,setDT)
-importFrom(ggplot2,aes)
-importFrom(ggplot2,element_blank)
-importFrom(ggplot2,element_line)
-importFrom(ggplot2,geom_hline)
-importFrom(ggplot2,geom_point)
-importFrom(ggplot2,geom_text)
-importFrom(ggplot2,geom_vline)
-importFrom(ggplot2,ggplot)
-importFrom(ggplot2,labs)
-importFrom(ggplot2,scale_color_manual)
-importFrom(ggplot2,theme)
-importFrom(ggplot2,theme_bw)
-importFrom(ggplot2,theme_minimal)
-importFrom(ggrepel,geom_label_repel)
-importFrom(ggrepel,geom_text_repel)
-importFrom(grDevices,dev.off)
-importFrom(grDevices,pdf)
+importFrom(SummarizedExperiment,
+  SummarizedExperiment,
+  assay,
+  colData,
+  rowData
+)
+importFrom(data.table,
+  dcast.data.table,
+  melt.data.table,
+  setDT
+)
+importFrom(ggplot2,
+  aes,
+  element_blank,
+  element_line,
+  geom_hline,
+  geom_point,
+  geom_text,
+  geom_vline,
+  ggplot,
+  labs,
+  scale_color_manual,
+  theme,
+  theme_bw,
+  theme_minimal
+)
+importFrom(ggrepel,
+  geom_label_repel,
+  geom_text_repel
+)
+importFrom(grDevices,
+  dev.off,
+  pdf
+)
 importFrom(grid,unit)
-importFrom(limma,contrasts.fit)
-importFrom(limma,duplicateCorrelation)
-importFrom(limma,eBayes)
-importFrom(limma,lmFit)
-importFrom(limma,makeContrasts)
-importFrom(limma,topTable)
+importFrom(limma,
+  contrasts.fit,
+  duplicateCorrelation,
+  eBayes,
+  lmFit,
+  makeContrasts,
+  topTable
+)
 importFrom(methods,is)
-importFrom(stats,as.formula)
-importFrom(stats,complete.cases)
-importFrom(stats,formula)
-importFrom(stats,median)
-importFrom(stats,model.matrix)
-importFrom(stats,p.adjust)
-importFrom(stats,relevel)
-importFrom(stats,rnorm)
-importFrom(stats,sd)
-importFrom(stats,setNames)
-importFrom(stats,update)
-importFrom(utils,globalVariables)
-importFrom(utils,read.csv)
-importFrom(utils,read.delim)
-importFrom(utils,read.table)
-importFrom(utils,write.csv)
+importFrom(stats,
+  as.formula,
+  complete.cases,
+  formula,
+  median,
+  model.matrix,
+  p.adjust,
+  relevel,
+  rnorm,
+  sd,
+  setNames,
+  update
+)
+importFrom(utils,
+  globalVariables,
+  read.csv,
+  read.delim,
+  read.table,
+  write.csv
+)

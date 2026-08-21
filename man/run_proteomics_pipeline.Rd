@@ -20,6 +20,7 @@ run_proteomics_pipeline(
   reference_condition,
   paired = FALSE,
   block_effect = FALSE,
+  block_var = "donor_id",
   annotation_format = c("standard", "sdrf"),
   sdrf_map = NULL,
   plots = FALSE,
@@ -76,7 +77,12 @@ the design prior to fitting the limma model.}
 \item{block_effect}{Logical. Forwarded to \code{test_limma_customized()}.
 If \code{TRUE}, models correlation between repeated observations via
 \code{limma::duplicateCorrelation} (see "Paired designs and blocking"
-section below); requires a \code{block} column in \code{colData(se)}.}
+section below); the blocking variable is specified by \code{block_var}.}
+
+\item{block_var}{Character. Forwarded to \code{test_limma_customized()}.
+Name of the colData column to use as the blocking variable when
+\code{block_effect = TRUE}. Defaults to \code{"donor_id"}. Ignored when
+\code{block_effect = FALSE}.}
 
 \item{annotation_format}{Character. One of \code{"standard"} (default) or
 \code{"sdrf"}. Use \code{"sdrf"} when \code{path_annotation} is an
@@ -227,9 +233,17 @@ Logical (forwarded to \code{test_limma_customized}). If \code{TRUE},
 correlation between repeated observations is modeled using
 \code{limma::duplicateCorrelation} and
 \code{lmFit(..., block=..., correlation=...)}.
-This requires a \code{block} column in \code{colData(se)}. Use this when
-there is a known blocking factor (e.g., donor/subject) inducing
-correlation across samples.
+The blocking variable is specified by \code{block_var} (default:
+\code{"donor_id"}). Use this when there is a known blocking factor
+(e.g., donor/subject) inducing correlation across samples.
+}
+\item{\code{block_var}}{
+Character (forwarded to \code{test_limma_customized}). Name of the
+\code{colData} column to use as the blocking variable for
+\code{duplicateCorrelation} when \code{block_effect = TRUE}. Defaults
+to \code{"donor_id"}. Any column present in the annotation file can be
+used (e.g., \code{"batch"}, \code{"patient_id"}). Ignored when
+\code{block_effect = FALSE}.
 }
 }
 }
