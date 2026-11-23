@@ -1,6 +1,6 @@
 Package: ProteinBatcher
 Title: An end-to-end proteomics workflow with condition-aware imputation, flexible statistical modelling and interactive visualization
-Version: 0.99.7
+Version: 1.0.0
 Authors@R: 
     c(person(given = "Aitor", family ="Moruno-Cuenca", email = "morunoaitor@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0009-0009-8133-2552")),
     person(given = "Dr. Sergi", family = "Sayols-Puig", email = "sergi.sayolspuig@almirall.com", role = c("ctb"), comment = c(ORCID = "0000-0002-3877-4170")),
